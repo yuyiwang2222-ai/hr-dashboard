@@ -864,14 +864,35 @@ def merge_employee_department(
 def load_upcoming_departures() -> pd.DataFrame:
     """
     載入即將離職名單
-    從 K:/HR-人資/4.薪酬/2.考勤保險/1.每日出勤/每日出勤總表.xlsx 的「離職」工作表讀取
+    優先從本機路徑讀取，若無則從數據資料夾或 data/ 資料夾讀取
     
     Returns:
         即將離職人員 DataFrame（事業部、姓名、職稱、離職日）
     """
-    file_path = r'K:\HR-人資\4.薪酬\2.考勤保險\1.每日出勤\每日出勤總表.xlsx'
+    # 可能的檔案路徑（依優先順序）
+    possible_paths = [
+        r'K:\HR-人資\4.薪酬\2.考勤保險\1.每日出勤\每日出勤總表.xlsx',  # 本機路徑
+        './數據資料夾/每日出勤總表.xlsx',  # 數據資料夾
+        './data/attendance.xlsx',  # data 資料夾
+    ]
+    
+    file_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            file_path = path
+            break
+    
+    if file_path is None:
+        print("⚠️ 找不到每日出勤總表檔案")
+        return pd.DataFrame(columns=['事業部', '姓名', '職稱', '離職日'])
     
     try:
+        # 檢查是否有「離職」工作表
+        xl = pd.ExcelFile(file_path)
+        if '離職' not in xl.sheet_names:
+            print(f"⚠️ 每日出勤總表沒有「離職」工作表，可用工作表：{xl.sheet_names}")
+            return pd.DataFrame(columns=['事業部', '姓名', '職稱', '離職日'])
+        
         df = pd.read_excel(file_path, sheet_name='離職')
         
         # 轉換離職日為日期（錯誤的設為NaT）
@@ -888,7 +909,7 @@ def load_upcoming_departures() -> pd.DataFrame:
         
         # 載入事業部對應表
         config = load_config()
-        external_path = config.get('external_data', {}).get('path', './數據資料夾')
+        external_path = config.get('system', {}).get('external_data_path', './數據資料夾')
         bu_mapping = load_business_unit_mapping(external_path, config)
         
         # 將部門對應到事業部
@@ -900,6 +921,7 @@ def load_upcoming_departures() -> pd.DataFrame:
         # 只保留需要的欄位並排序
         result = upcoming[['事業部', '姓名', '職稱', '離職日']].sort_values('離職日')
         
+        print(f"✅ 載入預計離職名單：{len(result)} 人（從 {os.path.basename(file_path)}）")
         return result
         
     except FileNotFoundError:

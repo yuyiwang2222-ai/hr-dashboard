@@ -25,6 +25,7 @@ TARGET_FOLDER = "./data"
 FILE_MAPPING = {
     "員工人數.xlsx": "employees.xlsx",
     "事業部對應表.xlsx": "departments.xlsx",
+    "每日出勤總表.xlsx": "attendance.xlsx",
 }
 
 
