@@ -144,7 +144,11 @@ def run_auto_report(send_email=True, recipients=None):
         # Step 4: 寄送郵件
         if send_email:
             log("步驟 4/4：寄送郵件...")
-            success = send_report_with_outlook(report_path, recipients)
+            # 優先使用 SMTP（支援新版 Outlook）
+            success = send_report_with_smtp(report_path, recipients)
+            if not success:
+                log("嘗試使用傳統 Outlook...")
+                success = send_report_with_outlook(report_path, recipients)
             if success:
                 log(f"✅ 郵件已寄送至：{', '.join(recipients)}")
             else:
@@ -160,6 +164,81 @@ def run_auto_report(send_email=True, recipients=None):
         log(f"❌ 執行錯誤：{str(e)}")
         import traceback
         log(traceback.format_exc())
+        return False
+
+
+def send_report_with_smtp(report_path, recipients):
+    """透過 SMTP 寄送報告（支援 Microsoft 365）"""
+    try:
+        import smtplib
+        import keyring
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from email.mime.base import MIMEBase
+        from email import encoders
+        
+        # SMTP 設定
+        SMTP_SERVER = "smtp.office365.com"
+        SMTP_PORT = 587
+        EMAIL = "chiehyi@df-recycle.com.tw"
+        SERVICE_NAME = "df_hr_report_email"
+        
+        # 從 Windows 認證管理員取得密碼
+        password = keyring.get_password(SERVICE_NAME, EMAIL)
+        if not password:
+            log("❌ 找不到郵件密碼，請先執行 setup_email_password.py 設定密碼")
+            return False
+        
+        today = date.today()
+        
+        # 建立郵件
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL
+        msg['To'] = ", ".join(recipients)
+        msg['Subject'] = f"大豐環保人力分析報告 - {today.strftime('%Y年%m月%d日')}"
+        
+        body = f"""您好，
+
+附件為 {today.strftime('%Y年%m月%d日')} 的人力分析報告。
+
+報告內容包含：
+📊 人力概況摘要
+📊 各部門人數比較（當月 vs 2025年1月）
+📊 各事業部非一線人員比較
+📊 各事業部行政幕僚人員比較
+📋 即將離職人員名單
+
+如有任何問題，請與人資部聯繫。
+
+---
+大豐環保人力儀表板（自動發送）
+"""
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+        
+        # 附加 PDF 報告
+        with open(report_path, 'rb') as f:
+            part = MIMEBase('application', 'pdf')
+            part.set_payload(f.read())
+            encoders.encode_base64(part)
+            filename = os.path.basename(report_path)
+            part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
+            msg.attach(part)
+        
+        # 發送郵件
+        log(f"正在連接 SMTP 伺服器 {SMTP_SERVER}...")
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL, password)
+            server.send_message(msg)
+        
+        return True
+        
+    except smtplib.SMTPAuthenticationError:
+        log("❌ SMTP 認證失敗，請檢查密碼是否正確")
+        log("   如有啟用雙重驗證，請使用應用程式密碼")
+        return False
+    except Exception as e:
+        log(f"SMTP 錯誤：{str(e)}")
         return False
 
 
