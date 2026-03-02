@@ -21,7 +21,7 @@ from src.data_loader import (
 )
 from src.metrics import (
     get_current_headcount, get_weekly_changes, get_monthly_changes,
-    get_turnover_rate, get_department_stats, get_position_stats,
+    get_turnover_rate, get_department_stats, get_business_unit_stats, get_position_stats,
     get_labor_type_stats, get_employment_type_stats, get_headcount_trend,
     get_headcount_at_month_end, get_headcount_at_date, get_semiannual_trend,
     get_period_changes
@@ -581,7 +581,7 @@ with tab1:
     
     with col_left:
         st.subheader("🏢 各部門人數")
-        dept_stats = get_department_stats(filtered_df)
+        dept_stats = get_business_unit_stats(filtered_df)
         
         # 顯示模式選擇
         chart_mode = st.radio(

@@ -275,6 +275,44 @@ def get_department_stats(df: pd.DataFrame) -> pd.DataFrame:
     return result.sort_values('count', ascending=False)
 
 
+def get_business_unit_stats(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    取得各事業部（部別）統計
+    
+    Args:
+        df: 員工資料 DataFrame
+        
+    Returns:
+        事業部統計 DataFrame：department, count, direct_count, indirect_count
+    """
+    active = get_active_employees(df)
+    
+    # 使用 business_unit 欄位，如沒有則用 department
+    group_col = 'business_unit' if 'business_unit' in active.columns else 'department'
+    
+    # 基本人數統計
+    bu_counts = active.groupby(group_col).size().reset_index(name='count')
+    bu_counts = bu_counts.rename(columns={group_col: 'department'})
+    
+    # 直接人員統計
+    direct_counts = active[active['labor_type'] == '直接'].groupby(group_col).size().reset_index(name='direct_count')
+    direct_counts = direct_counts.rename(columns={group_col: 'department'})
+    
+    # 間接人員統計
+    indirect_counts = active[active['labor_type'] == '間接'].groupby(group_col).size().reset_index(name='indirect_count')
+    indirect_counts = indirect_counts.rename(columns={group_col: 'department'})
+    
+    # 合併
+    result = bu_counts.merge(direct_counts, on='department', how='left')
+    result = result.merge(indirect_counts, on='department', how='left')
+    
+    # 填充空值
+    result['direct_count'] = result['direct_count'].fillna(0).astype(int)
+    result['indirect_count'] = result['indirect_count'].fillna(0).astype(int)
+    
+    return result.sort_values('count', ascending=False)
+
+
 def get_department_monthly_leaves(df: pd.DataFrame) -> pd.DataFrame:
     """
     取得各部門本月離職人數
