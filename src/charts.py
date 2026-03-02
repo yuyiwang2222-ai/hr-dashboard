@@ -111,14 +111,9 @@ def create_department_chart(
     """
     colors = colors or DEFAULT_COLORS
     
-    # 合併部門名稱
-    merged = dept_df.merge(
-        departments_df[['code', 'name']],
-        left_on='department',
-        right_on='code',
-        how='left'
-    )
-    merged['dept_name'] = merged['name'].fillna(merged['department'])
+    # 直接使用 department 欄位作為顯示名稱（已是事業部名稱）
+    merged = dept_df.copy()
+    merged['dept_name'] = merged['department']
     
     # 根據顯示類型選擇欄位
     if show_labor_type == 'direct':
@@ -174,8 +169,8 @@ def create_department_stacked_chart(
     建立部門直間接堆疊長條圖
     
     Args:
-        dept_df: 部門統計 DataFrame
-        departments_df: 部門對照表
+        dept_df: 部門統計 DataFrame (來自 get_business_unit_stats，department 欄位已是事業部名稱)
+        departments_df: 部門對照表（保留參數相容性，但不使用）
         colors: 色彩配置字典
         
     Returns:
@@ -183,22 +178,16 @@ def create_department_stacked_chart(
     """
     colors = colors or DEFAULT_COLORS
     
-    # 合併部門名稱
-    merged = dept_df.merge(
-        departments_df[['code', 'name']],
-        left_on='department',
-        right_on='code',
-        how='left'
-    )
-    merged['dept_name'] = merged['name'].fillna(merged['department'])
-    merged = merged.sort_values('count', ascending=True)
+    # dept_df 來自 get_business_unit_stats，department 欄位已經是事業部名稱
+    # 直接使用，不需要合併
+    sorted_df = dept_df.sort_values('count', ascending=True)
     
     fig = go.Figure()
     
     fig.add_trace(go.Bar(
         name='直接',
-        x=merged['direct_count'],
-        y=merged['dept_name'],
+        x=sorted_df['direct_count'],
+        y=sorted_df['department'],
         orientation='h',
         marker_color=colors['primary'],
         hovertemplate='%{y}<br>直接人員: %{x}<extra></extra>'
@@ -206,8 +195,8 @@ def create_department_stacked_chart(
     
     fig.add_trace(go.Bar(
         name='間接',
-        x=merged['indirect_count'],
-        y=merged['dept_name'],
+        x=sorted_df['indirect_count'],
+        y=sorted_df['department'],
         orientation='h',
         marker_color=colors['success'],
         hovertemplate='%{y}<br>間接人員: %{x}<extra></extra>'
