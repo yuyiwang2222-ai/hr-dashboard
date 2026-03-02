@@ -44,6 +44,8 @@ def sync_and_push_to_github():
             [sys.executable, sync_script],
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             cwd=script_dir
         )
         
@@ -63,11 +65,16 @@ def sync_and_push_to_github():
             ["git", "commit", "-m", f"自動更新資料 {today}"],
             cwd=script_dir,
             capture_output=True,
-            text=True
+            text=True,
+            encoding='utf-8',
+            errors='replace'
         )
         
         # 如果沒有變更，commit 會失敗，但這不是錯誤
-        if "nothing to commit" in commit_result.stdout or "nothing to commit" in commit_result.stderr:
+        if commit_result.stdout and "nothing to commit" in commit_result.stdout:
+            log("沒有新的變更需要提交")
+            return True
+        if commit_result.stderr and "nothing to commit" in commit_result.stderr:
             log("沒有新的變更需要提交")
             return True
         
@@ -77,6 +84,8 @@ def sync_and_push_to_github():
             cwd=script_dir,
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             check=True
         )
         
