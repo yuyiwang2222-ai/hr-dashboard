@@ -707,10 +707,29 @@ def load_departments(file_path: str = "data/departments.xlsx") -> pd.DataFrame:
         file_path: Excel 檔案路徑
         
     Returns:
-        部門對照表 DataFrame
+        部門對照表 DataFrame（標準化為 code, name 欄位）
     """
     try:
         df = pd.read_excel(file_path, sheet_name=0)
+        
+        # 如果是中文欄位名稱，做欄位對應
+        if '部門名稱' in df.columns and '部別' in df.columns:
+            # 從事業部對應表格式轉換
+            df = df.rename(columns={
+                '部門名稱': 'name',
+                '部別': 'code'
+            })
+        elif '部門名稱' in df.columns:
+            df = df.rename(columns={'部門名稱': 'name'})
+            if 'code' not in df.columns:
+                df['code'] = df['name']
+        
+        # 確保有必要欄位
+        if 'code' not in df.columns:
+            df['code'] = df.iloc[:, 0] if len(df.columns) > 0 else ''
+        if 'name' not in df.columns:
+            df['name'] = df.iloc[:, 0] if len(df.columns) > 0 else ''
+        
         return df
         
     except FileNotFoundError:
