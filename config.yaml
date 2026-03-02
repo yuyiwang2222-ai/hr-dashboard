@@ -1,0 +1,139 @@
+# 大豐環保人力儀表板 - 設定檔
+# ============================================
+
+# 系統設定
+system:
+  app_title: "大豐環保人力儀表板"
+  data_path: "./data"
+  snapshot_path: "./data/snapshots"
+  locale: "zh-TW"
+  
+  # 外部資料來源（每月人力數據）
+  external_data_path: "./數據資料夾"
+  external_file_pattern: "員工*.xlsx"  # 支援萬用字元
+  use_external_data: true  # 是否優先使用外部資料
+  
+  # 排除部門（不計入總人數統計，但可單獨查詢）
+  excluded_departments:
+    - "再生紡織設計部"
+  
+  # 排除公司（這些公司的員工不計入任何人數統計）
+  excluded_companies:
+    - "宏偉環保科技股份有限公司"
+  
+  # 排除特定員工（不計入人數統計，例如身障人員）
+  excluded_employees:
+    - "韓俊龍"      # 身障人員
+    - "吳孟葦"      # 身障人員
+  
+  # 排除部門名稱包含特定關鍵字（例如「負責人」）
+  excluded_department_keywords:
+    - "負責人"
+  
+  # 是否排除空白/未分類部門
+  exclude_blank_departments: true
+
+# 警報設定
+alerts:
+  # 月離職率閾值 (%)
+  monthly_turnover_rate:
+    warning: 5      # 黃燈：月離職率 > 5%
+    critical: 10    # 紅燈：月離職率 > 10%
+  
+  # 單部門月離職人數閾值
+  department_monthly_leaves:
+    warning: 3      # 黃燈：單部門月離職 > 3 人
+  
+  # 週人數變化率閾值 (%)
+  weekly_headcount_change:
+    warning: 5      # 黃燈：週人數變化 > 5%
+
+# Email 設定
+email:
+  enabled: false    # 預設關閉，需要時開啟
+  smtp_server: "smtp.company.com"
+  smtp_port: 587
+  use_tls: true
+  sender: "hr-system@company.com"
+  # 密碼請使用環境變數 EMAIL_PASSWORD
+  # sender_password: "${EMAIL_PASSWORD}"
+  recipients:
+    - "manager@company.com"
+    - "hr@company.com"
+
+# 排程設定
+schedule:
+  snapshot_day: "monday"    # 快照日：星期一
+  snapshot_time: "09:00"    # 快照時間
+  report_time: "09:30"      # 週報寄送時間
+
+# 欄位對應設定（將外部資料欄位對應到系統欄位）
+# 格式：系統欄位名: 外部資料欄位名
+column_mapping:
+  employee_id: "工號"         # 員工編號
+  name: "中文名"              # 姓名
+  department: "部門名稱"      # 部門名稱（將透過事業部對應表轉換）
+  position: "職位名稱"        # 職務
+  labor_type: "直/間接"       # 直接/間接
+  hire_date: "到職日期"       # 到職日期（用於判斷新進）
+  leave_date: "最後工作日"    # 最後工作日（9999/12/31 表示在職）
+  status: "員工狀態"          # 員工狀態（正式員工/退休員工/工讀生等）
+  job_title: "所屬職務"       # 所屬職務（用於對應職務類別）
+  company: "所屬公司"         # 所屬公司（用於排除特定公司）
+
+# 事業部對應表設定
+business_unit_mapping:
+  enabled: true
+  file_name: "事業部對應表.xlsx"  # 事業部對應表檔名
+  department_sheet: "處別"        # 部門對應工作表名稱
+  department_column: "部門名稱"   # 對應表中的部門欄位
+  business_unit_column: "部別"   # 對應表中的事業部欄位
+
+# 職務類別對應設定
+job_category_mapping:
+  enabled: true
+  file_name: "事業部對應表.xlsx"  # 同一檔案的另一工作表
+  job_sheet: "職務"               # 職務對應工作表名稱
+  job_title_column: "所屬職務"    # 對應表中的所屬職務欄位
+  job_category_column: "職務類別" # 對應表中的職務類別欄位
+  # 排除的職務類別（這些不計入在職人數）
+  excluded_categories:
+    - "無"                        # 虛擬、雇主對應的類別
+  # 工讀生職務類別（不計入在職人數，但可在部門名單查看）
+  part_time_category: "工讀生"
+  # 職務類別特例覆蓋（員工編號 → 職務類別）
+  overrides:
+    "03130": "行政幕僚"           # 陳信佳
+
+# 員工狀態篩選設定
+employee_status:
+  # 在職狀態（這些狀態視為「在職」）
+  active_statuses:
+    - "正式員工"
+    - "試用員工"
+    - "工讀生"
+    - "約聘"
+    - "實習生"
+  # 工讀生相關狀態（用於彈性合併/拆開）
+  part_time_statuses:
+    - "工讀生"
+    - "實習生"
+  # 離職相關狀態
+  inactive_statuses:
+    - "退休員工"
+    - "離職員工"
+    - "留職停薪"
+
+# 顯示設定
+display:
+  # 趨勢圖顯示週數
+  trend_weeks: 12
+  
+  # 色彩配置
+  colors:
+    primary: "#1E88E5"      # 主色（品牌藍）
+    success: "#4CAF50"      # 成功/入職（綠）
+    warning: "#FFC107"      # 警告/黃燈
+    danger: "#F44336"       # 危急/紅燈
+    neutral: "#9E9E9E"      # 離職（灰）
+    background: "#FAFAFA"   # 背景
