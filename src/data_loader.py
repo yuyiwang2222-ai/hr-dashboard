@@ -217,17 +217,87 @@ def load_employees(file_path: str = "data/employees.xlsx", config: Dict[str, Any
     # 檢查是否使用外部資料
     if system_config.get('use_external_data', False):
         external_path = system_config.get('external_data_path', './數據資料夾')
-        external_df = load_external_employees(external_path, config)
-        if len(external_df) > 0:
-            print(f"✅ 從外部資料夾載入 {len(external_df)} 筆員工資料")
-            return external_df
+        # 只有當外部資料夾存在時才嘗試讀取
+        if os.path.exists(external_path):
+            external_df = load_external_employees(external_path, config)
+            if len(external_df) > 0:
+                print(f"✅ 從外部資料夾載入 {len(external_df)} 筆員工資料")
+                return external_df
+            else:
+                print("⚠️ 外部資料夾無有效資料，改用預設資料")
         else:
-            print("⚠️ 外部資料夾無有效資料，改用預設資料")
+            print(f"📂 外部資料夾不存在，使用 data/ 資料夾")
     
-    # 從預設路徑載入
+    # 從預設路徑載入（data/employees.xlsx）
     try:
         df = pd.read_excel(file_path, sheet_name=0)
         
+        # 檢查是否需要做欄位對應（如果有中文欄位名稱）
+        if '員工自然編號' in df.columns or '中文名' in df.columns or '到職日期' in df.columns:
+            # 原始資料格式，需要做欄位對應
+            column_mapping = config.get('column_mapping', {})
+            status_config = config.get('employee_status', {})
+            jc_config = config.get('job_category_mapping', {})
+            
+            # 嘗試從 data/ 資料夾讀取對應表
+            data_path = os.path.dirname(file_path) if file_path else './data'
+            bu_mapping = {}
+            jc_mapping = {}
+            
+            # 檢查是否有對應表檔案在 data/ 資料夾
+            dept_file = os.path.join(data_path, 'departments.xlsx')
+            if os.path.exists(dept_file):
+                try:
+                    bu_config = config.get('business_unit_mapping', {})
+                    sheet_name = bu_config.get('department_sheet', '處別')
+                    dept_col = bu_config.get('department_column', '部門名稱')
+                    bu_col = bu_config.get('business_unit_column', '部別')
+                    
+                    dept_df = pd.read_excel(dept_file, sheet_name=sheet_name)
+                    if dept_col in dept_df.columns and bu_col in dept_df.columns:
+                        bu_mapping = dict(zip(dept_df[dept_col].astype(str).str.strip(), 
+                                            dept_df[bu_col].astype(str).str.strip()))
+                        print(f"✅ 載入事業部對應表：{len(bu_mapping)} 個部門對應")
+                    
+                    # 職務類別對應
+                    jc_sheet = jc_config.get('job_sheet', '職務')
+                    job_title_col = jc_config.get('job_title_column', '所屬職務')
+                    job_category_col = jc_config.get('job_category_column', '職務類別')
+                    
+                    jc_df = pd.read_excel(dept_file, sheet_name=jc_sheet)
+                    if job_title_col in jc_df.columns and job_category_col in jc_df.columns:
+                        jc_mapping = dict(zip(
+                            jc_df[job_title_col].dropna().astype(str).str.strip(),
+                            jc_df[job_category_col].dropna().astype(str).str.strip()
+                        ))
+                        print(f"✅ 載入職務類別對應表：{len(jc_mapping)} 個職務對應")
+                except Exception as e:
+                    print(f"⚠️ 讀取對應表錯誤：{e}")
+            
+            df = apply_column_mapping(df, column_mapping, bu_mapping, jc_mapping, status_config, jc_config)
+            
+            # 排除特定公司的員工
+            excluded_companies = config.get('system', {}).get('excluded_companies', [])
+            if excluded_companies and 'company' in df.columns:
+                original_count = len(df)
+                df = df[~df['company'].isin(excluded_companies)]
+                excluded_count = original_count - len(df)
+                if excluded_count > 0:
+                    print(f"  ✅ 已排除 {excluded_count} 位員工（所屬公司：{', '.join(excluded_companies)}）")
+            
+            # 排除特定員工
+            excluded_employees = config.get('system', {}).get('excluded_employees', [])
+            if excluded_employees and 'name' in df.columns:
+                original_count = len(df)
+                df = df[~df['name'].isin(excluded_employees)]
+                excluded_count = original_count - len(df)
+                if excluded_count > 0:
+                    print(f"  ✅ 已排除 {excluded_count} 位特定員工（{', '.join(excluded_employees)}）")
+            
+            print(f"✅ 從 data/ 資料夾載入 {len(df)} 筆員工資料")
+            return df
+        
+        # 已經是標準格式
         # 確保日期欄位正確轉換
         if 'hire_date' in df.columns:
             df['hire_date'] = pd.to_datetime(df['hire_date']).dt.date
