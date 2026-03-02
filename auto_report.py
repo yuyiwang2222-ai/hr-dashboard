@@ -30,6 +30,67 @@ def log(message):
         f.write(f"[{timestamp}] {message}\n")
 
 
+def sync_and_push_to_github():
+    """
+    同步資料並推送到 GitHub，自動更新 Streamlit Cloud
+    """
+    import subprocess
+    
+    try:
+        # 執行 sync_data.py 同步資料
+        log("正在同步資料...")
+        sync_script = os.path.join(script_dir, "sync_data.py")
+        result = subprocess.run(
+            [sys.executable, sync_script],
+            capture_output=True,
+            text=True,
+            cwd=script_dir
+        )
+        
+        if result.returncode != 0:
+            log(f"同步資料失敗：{result.stderr}")
+            return False
+        
+        # Git add, commit, push
+        log("正在推送到 GitHub...")
+        
+        # git add
+        subprocess.run(["git", "add", "."], cwd=script_dir, check=True)
+        
+        # git commit
+        today = date.today().strftime('%Y-%m-%d')
+        commit_result = subprocess.run(
+            ["git", "commit", "-m", f"自動更新資料 {today}"],
+            cwd=script_dir,
+            capture_output=True,
+            text=True
+        )
+        
+        # 如果沒有變更，commit 會失敗，但這不是錯誤
+        if "nothing to commit" in commit_result.stdout or "nothing to commit" in commit_result.stderr:
+            log("沒有新的變更需要提交")
+            return True
+        
+        # git push
+        push_result = subprocess.run(
+            ["git", "push"],
+            cwd=script_dir,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        log("Git 推送成功，Streamlit Cloud 將自動更新")
+        return True
+        
+    except subprocess.CalledProcessError as e:
+        log(f"Git 操作失敗：{e}")
+        return False
+    except Exception as e:
+        log(f"同步錯誤：{str(e)}")
+        return False
+
+
 def run_auto_report(send_email=True, recipients=None):
     """
     執行自動報告流程
@@ -43,17 +104,25 @@ def run_auto_report(send_email=True, recipients=None):
     
     # 預設收件人
     if recipients is None:
-        recipients = ["cheihyi@df-recycle.com.tw"]
+        recipients = ["chiehyi@df-recycle.com.tw"]
     
     try:
-        # Step 1: 清除快取，確保抓取最新資料
-        log("步驟 1/3：清除快取...")
+        # Step 1: 同步資料並推送到 GitHub
+        log("步驟 1/4：同步資料到 GitHub...")
+        git_success = sync_and_push_to_github()
+        if git_success:
+            log("✅ 資料已同步並推送到 GitHub")
+        else:
+            log("⚠️ Git 推送失敗，繼續執行報告生成")
+        
+        # Step 2: 清除快取，確保抓取最新資料
+        log("步驟 2/4：清除快取...")
         from src.data_loader import clear_cache
         clear_cache()
         log("✅ 快取已清除")
         
-        # Step 2: 產生 PDF 報告
-        log("步驟 2/3：產生 PDF 報告...")
+        # Step 3: 產生 PDF 報告
+        log("步驟 3/4：產生 PDF 報告...")
         from generate_pdf_report import generate_pdf_report
         report_path = generate_pdf_report()
         
@@ -63,9 +132,9 @@ def run_auto_report(send_email=True, recipients=None):
             log("❌ 報告生成失敗")
             return False
         
-        # Step 3: 寄送郵件
+        # Step 4: 寄送郵件
         if send_email:
-            log("步驟 3/3：寄送郵件...")
+            log("步驟 4/4：寄送郵件...")
             success = send_report_with_outlook(report_path, recipients)
             if success:
                 log(f"✅ 郵件已寄送至：{', '.join(recipients)}")
@@ -73,7 +142,7 @@ def run_auto_report(send_email=True, recipients=None):
                 log("❌ 郵件寄送失敗")
                 return False
         else:
-            log("步驟 3/3：跳過寄送郵件")
+            log("步驟 4/4：跳過寄送郵件")
         
         log("🎉 自動報告流程完成！")
         return True

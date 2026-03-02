@@ -14,8 +14,13 @@
 """
 
 import os
+import sys
 import shutil
 from datetime import datetime
+
+# 設定 stdout 編碼，避免排程任務時編碼錯誤
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 # 來源與目標路徑
 SOURCE_FOLDER = "./數據資料夾"
