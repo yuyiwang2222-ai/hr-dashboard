@@ -716,19 +716,13 @@ with tab_staff:
     # 按當月人數排序
     staff_data_sorted_tab = sorted(staff_data_tab, key=lambda x: x['current'], reverse=True)
     
-    staff_diff_df_tab = pd.DataFrame(staff_data_sorted_tab)
-    staff_diff_df_tab.columns = ['部門', '2025年1月', f'{selected_year}年{selected_month}月', '變化', '百分比']
-    staff_diff_df_tab['變化'] = staff_diff_df_tab['變化'].apply(lambda x: f"+{x}" if x > 0 else str(x))
-    staff_diff_df_tab['百分比'] = staff_diff_df_tab['百分比'].apply(lambda x: f"+{x:.1f}%" if x > 0 else f"{x:.1f}%")
-    st.dataframe(staff_diff_df_tab, use_container_width=True, hide_index=True)
-    
-    # 計算總計
+    # 計算總計（先計算，以便先顯示）
     total_baseline = sum([d['baseline'] for d in staff_data_tab])
     total_current = sum([d['current'] for d in staff_data_tab])
     total_diff = total_current - total_baseline
     total_pct = ((total_diff / total_baseline) * 100) if total_baseline > 0 else 0
     
-    st.markdown("---")
+    # 先顯示總計卡片（整體人數變化一目瞭然）
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("2025年1月總計", f"{total_baseline} 人")
@@ -738,6 +732,15 @@ with tab_staff:
         st.metric("總變化", f"{'+' if total_diff > 0 else ''}{total_diff} 人")
     with col4:
         st.metric("變化百分比", f"{'+' if total_pct > 0 else ''}{total_pct:.1f}%")
+    
+    st.markdown("---")
+    
+    # 再顯示各部門明細表格
+    staff_diff_df_tab = pd.DataFrame(staff_data_sorted_tab)
+    staff_diff_df_tab.columns = ['部門', '2025年1月', f'{selected_year}年{selected_month}月', '變化', '百分比']
+    staff_diff_df_tab['變化'] = staff_diff_df_tab['變化'].apply(lambda x: f"+{x}" if x > 0 else str(x))
+    staff_diff_df_tab['百分比'] = staff_diff_df_tab['百分比'].apply(lambda x: f"+{x:.1f}%" if x > 0 else f"{x:.1f}%")
+    st.dataframe(staff_diff_df_tab, use_container_width=True, hide_index=True)
 
 
 # ============================================
