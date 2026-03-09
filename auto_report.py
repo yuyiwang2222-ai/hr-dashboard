@@ -113,7 +113,11 @@ def run_auto_report(send_email=True, recipients=None):
     
     # 預設收件人
     if recipients is None:
-        recipients = ["chiehyi@df-recycle.com.tw"]
+        recipients = [
+            "matt@df-recycle.com.tw",
+            "chjuan@df-recycle.com.tw",
+            "chiehyi@df-recycle.com.tw"
+        ]
     
     try:
         # Step 1: 同步資料並推送到 GitHub
@@ -208,6 +212,8 @@ def send_report_with_smtp(report_path, recipients):
 📊 各事業部行政幕僚人員比較
 📋 即將離職人員名單
 
+🔗 線上儀表板：https://hr-dashboard-y6ngagtzttdcps4bkuftns.streamlit.app/
+
 如有任何問題，請與人資部聯繫。
 
 ---
@@ -267,6 +273,8 @@ def send_report_with_outlook(report_path, recipients):
 📊 各事業部非一線人員比較
 📊 各事業部行政幕僚人員比較
 📋 即將離職人員名單
+
+🔗 線上儀表板：https://hr-dashboard-y6ngagtzttdcps4bkuftns.streamlit.app/
 
 如有任何問題，請與人資部聯繫。
 

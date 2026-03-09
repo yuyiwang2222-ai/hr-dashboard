@@ -26,7 +26,7 @@ def send_report_email():
         mail = outlook.CreateItem(0)  # 0 = MailItem
         
         # 設定收件人
-        mail.To = "chiehyi@df-recycle.com.tw"
+        mail.To = "matt@df-recycle.com.tw;chjuan@df-recycle.com.tw;chiehyi@df-recycle.com.tw"
         
         # 設定主旨
         mail.Subject = f"大豐環保人力分析報告 - {today.strftime('%Y年%m月%d日')}"
@@ -43,6 +43,8 @@ def send_report_email():
 📊 各事業部行政幕僚人員比較
 📋 即將離職人員名單
 
+🔗 線上儀表板：https://hr-dashboard-y6ngagtzttdcps4bkuftns.streamlit.app/
+
 如有任何問題，請與人資部聯繫。
 
 ---
@@ -55,7 +57,7 @@ def send_report_email():
         # 發送
         mail.Send()
         
-        print(f"✅ 郵件已成功寄送至 chiehyi@df-recycle.com.tw")
+        print(f"✅ 郵件已成功寄送至 matt, chjuan, chiehyi@df-recycle.com.tw")
         print(f"📎 附件：{report_filename}")
         return True
         
