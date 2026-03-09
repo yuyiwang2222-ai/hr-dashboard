@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.data_loader import (
     load_config, load_employees, load_departments, 
-    merge_employee_department, load_upcoming_departures, clear_cache
+    merge_employee_department, load_upcoming_departures, clear_cache, mask_name
 )
 from src.metrics import (
     get_current_headcount, get_weekly_changes, get_monthly_changes,
@@ -861,6 +861,9 @@ with tab2:
     
     if display_cols:
         display_df = active_dept_employees[display_cols].copy()
+        # 姓名遮罩（個資保護）
+        if 'name' in display_cols:
+            display_df['name'] = display_df['name'].apply(mask_name)
         display_df.columns = [col_names.get(c, c) for c in display_cols]
         
         # 套用到職日紅字樣式（未來日期）
@@ -878,8 +881,11 @@ with tab2:
     with st.expander(f"📋 {dept_for_analysis} 即將離職名單", expanded=False):
         upcoming_departures = load_upcoming_departures()
         # 篩選該事業部
-        dept_upcoming = upcoming_departures[upcoming_departures['事業部'] == dept_for_analysis] if len(upcoming_departures) > 0 else upcoming_departures
+        dept_upcoming = upcoming_departures[upcoming_departures['事業部'] == dept_for_analysis].copy() if len(upcoming_departures) > 0 else upcoming_departures
         if len(dept_upcoming) > 0:
+            # 姓名遮罩（個資保護）
+            if '姓名' in dept_upcoming.columns:
+                dept_upcoming['姓名'] = dept_upcoming['姓名'].apply(mask_name)
             st.warning(f"共 {len(dept_upcoming)} 位同仁即將離職")
             st.dataframe(dept_upcoming, use_container_width=True, hide_index=True)
         else:
@@ -896,8 +902,12 @@ with tab3:
     with st.expander("📋 即將離職名單", expanded=True):
         upcoming_departures = load_upcoming_departures()
         if len(upcoming_departures) > 0:
-            st.warning(f"共 {len(upcoming_departures)} 位同仁即將離職")
-            st.dataframe(upcoming_departures, use_container_width=True, hide_index=True)
+            # 姓名遮罩（個資保護）
+            upcoming_display = upcoming_departures.copy()
+            if '姓名' in upcoming_display.columns:
+                upcoming_display['姓名'] = upcoming_display['姓名'].apply(mask_name)
+            st.warning(f"共 {len(upcoming_display)} 位同仁即將離職")
+            st.dataframe(upcoming_display, use_container_width=True, hide_index=True)
         else:
             st.info("目前沒有即將離職的人員")
     
@@ -936,6 +946,10 @@ with tab3:
             display_cols = ['employee_id', 'name', 'department', 'position', 'hire_date']
             display_cols = [c for c in display_cols if c in hire_list.columns]
             hire_list = hire_list[display_cols]
+            # 姓名遮罩（個資保護）
+            if 'name' in display_cols:
+                name_idx = display_cols.index('name')
+                hire_list.iloc[:, name_idx] = hire_list.iloc[:, name_idx].apply(mask_name)
             hire_list.columns = ['員工編號', '姓名', '事業部', '職務', '到職日'][:len(display_cols)]
             
             # 套用到職日紅字樣式（未來日期）
@@ -955,6 +969,10 @@ with tab3:
             display_cols = ['employee_id', 'name', 'department', 'position', 'leave_date']
             display_cols = [c for c in display_cols if c in leave_list.columns]
             leave_list = leave_list[display_cols]
+            # 姓名遮罩（個資保護）
+            if 'name' in display_cols:
+                name_idx = display_cols.index('name')
+                leave_list.iloc[:, name_idx] = leave_list.iloc[:, name_idx].apply(mask_name)
             leave_list.columns = ['員工編號', '姓名', '事業部', '職務', '離職日'][:len(display_cols)]
             st.dataframe(leave_list, use_container_width=True, hide_index=True)
         else:

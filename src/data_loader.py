@@ -20,6 +20,26 @@ _business_unit_mapping_cache = None
 _job_category_mapping_cache = None
 
 
+def mask_name(name: str) -> str:
+    """
+    姓名遮罩：將第2個字以 'o' 替代
+    
+    基於個資保護考量，將姓名第2個字替換為 'o'
+    例如：王大明 → 王o明
+    
+    Args:
+        name: 原始姓名
+        
+    Returns:
+        遮罩後的姓名
+    """
+    if pd.isna(name) or not isinstance(name, str) or len(name) < 2:
+        return name
+    
+    # 將第2個字替換為 'o'
+    return name[0] + 'o' + name[2:] if len(name) > 2 else name[0] + 'o'
+
+
 def clear_cache():
     """
     清除所有快取
@@ -285,11 +305,12 @@ def load_employees(file_path: str = "data/employees.xlsx", config: Dict[str, Any
                 if excluded_count > 0:
                     print(f"  ✅ 已排除 {excluded_count} 位員工（所屬公司：{', '.join(excluded_companies)}）")
             
-            # 排除特定員工
+            # 排除特定員工（使用原始姓名 name_original，因為遮罩後的 name 已被修改）
             excluded_employees = config.get('system', {}).get('excluded_employees', [])
-            if excluded_employees and 'name' in df.columns:
+            name_col_for_exclusion = 'name_original' if 'name_original' in df.columns else 'name'
+            if excluded_employees and name_col_for_exclusion in df.columns:
                 original_count = len(df)
-                df = df[~df['name'].isin(excluded_employees)]
+                df = df[~df[name_col_for_exclusion].isin(excluded_employees)]
                 excluded_count = original_count - len(df)
                 if excluded_count > 0:
                     print(f"  ✅ 已排除 {excluded_count} 位特定員工（{', '.join(excluded_employees)}）")
@@ -308,6 +329,12 @@ def load_employees(file_path: str = "data/employees.xlsx", config: Dict[str, Any
         df['status'] = df['status'].fillna('在職')
         df['employment_type'] = df['employment_type'].fillna('正職')
         df['labor_type'] = df['labor_type'].fillna('直接')
+        
+        # 姓名遮罩處理（基於個資保護考量，將第2個字以 'o' 替代）
+        if 'name' in df.columns:
+            df['name_original'] = df['name'].copy()
+            df['name'] = df['name'].apply(mask_name)
+            print(f"  🔒 已套用姓名遮罩（個資保護）")
         
         return df
         
@@ -375,11 +402,12 @@ def load_external_employees(external_path: str, config: Dict[str, Any]) -> pd.Da
             if excluded_count > 0:
                 print(f"  ✅ 已排除 {excluded_count} 位員工（所屬公司：{', '.join(excluded_companies)}）")
         
-        # 排除特定員工（例如身障人員）
+        # 排除特定員工（例如身障人員）（使用原始姓名 name_original）
         excluded_employees = config.get('system', {}).get('excluded_employees', [])
-        if excluded_employees and 'name' in df.columns:
+        name_col_for_exclusion = 'name_original' if 'name_original' in df.columns else 'name'
+        if excluded_employees and name_col_for_exclusion in df.columns:
             before_count = len(df)
-            df = df[~df['name'].isin(excluded_employees)]
+            df = df[~df[name_col_for_exclusion].isin(excluded_employees)]
             excluded_count = before_count - len(df)
             if excluded_count > 0:
                 print(f"  ✅ 已排除 {excluded_count} 位特定員工（{', '.join(excluded_employees)}）")
@@ -664,6 +692,14 @@ def apply_column_mapping(
     part_time_count = len(result[(result['status'] == '在職') & (result['is_part_time'] == True)])
     print(f"  📊 在職人數：{active_count} (含工讀生 {part_time_count})")
     
+    # 姓名遮罩處理（基於個資保護考量，將第2個字以 'o' 替代）
+    if 'name' in result.columns:
+        # 保留原始姓名供內部處理使用
+        result['name_original'] = result['name'].copy()
+        # 套用姓名遮罩
+        result['name'] = result['name'].apply(mask_name)
+        print(f"  🔒 已套用姓名遮罩（個資保護）")
+    
     return result
 
 
@@ -920,6 +956,9 @@ def load_upcoming_departures() -> pd.DataFrame:
         
         # 只保留需要的欄位並排序
         result = upcoming[['事業部', '姓名', '職稱', '離職日']].sort_values('離職日')
+        
+        # 套用姓名遮罩（個資保護）
+        result['姓名'] = result['姓名'].apply(mask_name)
         
         print(f"✅ 載入預計離職名單：{len(result)} 人（從 {os.path.basename(file_path)}）")
         return result
