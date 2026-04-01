@@ -197,3 +197,80 @@ python scripts/weekly_job.py
 ---
 
 © 2026 大豐環保科技股份有限公司
+
+## 🔁 VS Code 週一自動流程
+
+現在這個專案支援「每週一更新兩個 Excel 後，自動同步資料並開本機網頁」。
+
+### 自動執行方式
+
+1. 用 VS Code 開啟整個 `Agents-人力變化` 專案資料夾。
+2. 第一次開啟如果看到 `Allow Automatic Tasks`，請選 `Allow`。
+3. 把以下兩個檔案覆蓋成最新版本：
+   - `數據資料夾/員工人數.xlsx`
+   - `數據資料夾/每日出勤總表.xlsx`
+4. VS Code 背景 task 會自動：
+   - 執行 `sync_data.py` 同步到 `data/`
+   - 執行 `scripts/weekly_job.py`
+   - 啟動或重啟本機 Streamlit
+   - 自動開啟 `http://127.0.0.1:8501`
+
+### 手動補跑
+
+如果你不想等監看自動偵測，也可以直接執行：
+
+```bash
+python scripts/monday_workflow.py --force --once
+```
+
+或直接雙擊：
+
+- `執行週一更新流程.bat`
+
+### 說明
+
+- 目前預設是更新本機網頁，不會自動 `git commit` / `git push`。
+- 你提供的雲端網址如果要跟著每週自動更新，可以再另外接一個「發佈到 GitHub / Streamlit Cloud」流程。
+## ⏰ 週一 09:00 / 09:30 自動流程
+
+目前專案已支援把 HRM 匯出與週報寄送拆成兩個排程：
+
+### 09:00 更新資料
+
+執行：`run-0900-update.bat`
+
+這一步會自動：
+- 從 `J:\HR-人資\4.薪酬\2.考勤保險\1.每日出勤\每日出勤總表.xlsx` 複製最新出勤檔
+- 開啟 Digiwin HRM 並匯出 `員工人數.xlsx`
+- 同步到 `data/`
+- 執行 `weekly_job.py`
+- 產生最新 PDF 與更新雲端資料，但先不寄信
+
+### 09:30 寄送週報
+
+執行：`run-0930-email.bat`
+
+這一步會直接寄出當天最新 PDF 報告。
+
+### 建議的 Windows Task Scheduler 設定
+
+建立兩個工作：
+
+1. `人力週報-09點更新資料`
+   - 時間：每週一 09:00
+   - 程式：`run-0900-update.bat`
+
+2. `人力週報-09點30寄信`
+   - 時間：每週一 09:30
+   - 程式：`run-0930-email.bat`
+
+### HRM 自動化前置設定
+
+請先在 `.env` 設定：
+
+- `HRM_USERNAME`
+- `HRM_PASSWORD`
+- `HRM_COMPANY`（若登入需要）
+- `ATTENDANCE_SOURCE_PATH`
+
+若 HRM 視窗版面和目前截圖不一致，`scripts/export_hrm_employees.py` 裡的座標常數可能需要微調。

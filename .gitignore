@@ -1,4 +1,4 @@
-# 環境變數（含敏感資訊）
+﻿# 環境變數（含敏感資訊）
 .env
 .env.local
 
@@ -21,9 +21,16 @@ data/snapshots/
 /事業部對應表.xlsx
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/
+!.vscode/tasks.json
+!.vscode/settings.json
 .idea/
 
 # 系統檔案
 .DS_Store
 Thumbs.db
+.monday-workflow-state.json
+
+# 本機自動化快取
+.automation-cache/

@@ -1,0 +1,84 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Monday Workflow: Watch Source Files",
+      "type": "shell",
+      "command": "C:\\Users\\chiehyi\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "args": [
+        "scripts/monday_workflow.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false,
+        "showReuseMessage": false
+      },
+      "problemMatcher": {
+        "owner": "custom",
+        "fileLocation": "absolute",
+        "pattern": {
+          "regexp": "^\\[ERROR\\]\\s+(.+):(\\d+):\\s+(.+)$",
+          "file": 1,
+          "line": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Starting Monday workflow watcher.*$",
+          "endsPattern": "^.*Workflow ready\\. Waiting for source file updates.*$"
+        }
+      }
+    },
+    {
+      "label": "Monday Workflow: Run Once",
+      "type": "shell",
+      "command": "C:\\Users\\chiehyi\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "args": [
+        "scripts/monday_workflow.py",
+        "--force",
+        "--once"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true,
+        "showReuseMessage": false
+      }
+    },
+    {
+      "label": "Dashboard: Launch Streamlit Only",
+      "type": "shell",
+      "command": "C:\\Users\\chiehyi\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "args": [
+        "-m",
+        "streamlit",
+        "run",
+        "app.py",
+        "--server.address",
+        "127.0.0.1",
+        "--server.port",
+        "8501"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false,
+        "showReuseMessage": false
+      }
+    }
+  ]
+}
