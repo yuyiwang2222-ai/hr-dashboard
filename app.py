@@ -136,6 +136,42 @@ st.markdown("""
 
 
 # ============================================
+# 密碼驗證
+# ============================================
+def check_password():
+    """顯示登入表單並驗證密碼，回傳是否已通過驗證"""
+    if st.session_state.get("authenticated"):
+        return True
+
+    # 登入頁面置中樣式
+    st.markdown("""
+    <style>
+        [data-testid="stSidebar"] { display: none; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("## 🏢 大豐環保人力儀表板")
+        st.markdown("請輸入密碼以存取儀表板")
+        with st.form("login_form"):
+            password = st.text_input("密碼", type="password", placeholder="請輸入密碼")
+            submitted = st.form_submit_button("登入", use_container_width=True)
+            if submitted:
+                correct_password = st.secrets.get("auth", {}).get("password", "")
+                if password == correct_password:
+                    st.session_state["authenticated"] = True
+                    st.rerun()
+                else:
+                    st.error("❌ 密碼錯誤，請重新輸入")
+    return False
+
+
+if not check_password():
+    st.stop()
+
+
+# ============================================
 # 載入資料
 # ============================================
 @st.cache_data(ttl=300)  # 5分鐘快取

@@ -1,6 +1,7 @@
 ﻿# 環境變數（含敏感資訊）
 .env
 .env.local
+.streamlit/secrets.toml
 
 # Python
 __pycache__/
