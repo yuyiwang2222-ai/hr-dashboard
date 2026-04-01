@@ -158,7 +158,14 @@ def check_password():
             password = st.text_input("密碼", type="password", placeholder="請輸入密碼")
             submitted = st.form_submit_button("登入", use_container_width=True)
             if submitted:
-                correct_password = st.secrets.get("auth", {}).get("password", "")
+                # 優先從 st.secrets 讀取，備案從 config.yaml 讀取
+                try:
+                    correct_password = st.secrets["auth"]["password"]
+                except (KeyError, FileNotFoundError):
+                    import yaml
+                    with open("config.yaml", "r", encoding="utf-8") as f:
+                        _cfg = yaml.safe_load(f)
+                    correct_password = _cfg.get("auth", {}).get("password", "")
                 if password == correct_password:
                     st.session_state["authenticated"] = True
                     st.rerun()

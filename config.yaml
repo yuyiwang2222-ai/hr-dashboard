@@ -33,6 +33,10 @@ system:
   # 是否排除空白/未分類部門
   exclude_blank_departments: true
 
+# 登入密碼
+auth:
+  password: "hr27590900"
+
 # 警報設定
 alerts:
   # 月離職率閾值 (%)
