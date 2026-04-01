@@ -25,6 +25,8 @@ python-dotenv>=1.0.0
 # Email（標準庫，無需安裝）
 # smtplib - 內建
 # email - 內建
-pywinauto>=0.6.8
-pywin32>=306
-keyring>=25.0.0
+
+# Windows 專用套件（僅本地使用，Streamlit Cloud 不需要）
+# pywinauto>=0.6.8
+# pywin32>=306
+# keyring>=25.0.0
