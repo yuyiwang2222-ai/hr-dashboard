@@ -90,5 +90,21 @@ def send_report_email():
         return False
 
 if __name__ == "__main__":
-    print("📧 正在透過 Outlook 寄送人力分析報告...")
-    send_report_email()
+    # 顯示寄件預覽，確認後才寄送
+    preview = get_email_preview()
+    print("=" * 50)
+    print("📧 週報寄送預覽")
+    print("=" * 50)
+    print(f"收件人：{', '.join(preview['recipients'])}")
+    print(f"主旨：  {preview['subject']}")
+    if preview["report_exists"]:
+        print(f"附件：  ✅ {preview['report_filename']}")
+    else:
+        print(f"附件：  ❌ 找不到 {preview['report_filename']}")
+        print("       請先執行 python generate_pdf_report.py")
+    print("=" * 50)
+    confirm = input("確認寄送？(y/N)：").strip().lower()
+    if confirm == "y":
+        send_report_email()
+    else:
+        print("已取消。")
