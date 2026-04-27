@@ -245,6 +245,37 @@ with st.sidebar:
     st.markdown("---")
     st.caption(f"資料更新時間：{datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
+    st.markdown("---")
+    st.subheader("📧 週報寄送")
+    report_exists = False
+    try:
+        from send_report_email import get_email_preview, send_report_email
+
+        preview = get_email_preview()
+        recipients_text = "、".join(preview["recipients"])
+        st.caption(f"收件人：{recipients_text}")
+        st.caption(f"主旨：{preview['subject']}")
+        if preview["report_exists"]:
+            st.success(f"附件就緒：{preview['report_filename']}")
+            report_exists = True
+        else:
+            st.warning(f"尚未找到附件：{preview['report_filename']}（請先產生 PDF）")
+    except Exception as exc:
+        st.error(f"❌ 無法載入寄信預覽：{exc}")
+
+    email_confirmed = st.checkbox("我已確認內容，現在傳送週報", key="email_send_confirm")
+    send_disabled = (not email_confirmed) or (not report_exists)
+    if st.button("傳送", use_container_width=True, disabled=send_disabled):
+        with st.spinner("正在傳送週報..."):
+            try:
+                sent = send_report_email()
+                if sent:
+                    st.success("✅ 週報已寄出")
+                else:
+                    st.error("❌ 週報寄送失敗，請檢查 Outlook、網路與報告檔案")
+            except Exception as exc:
+                st.error(f"❌ 週報寄送失敗：{exc}")
+
 
 # ============================================
 # 資料篩選

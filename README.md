@@ -229,8 +229,8 @@ python scripts/monday_workflow.py --force --once
 
 ### 說明
 
-- 目前預設是更新本機網頁，不會自動 `git commit` / `git push`。
-- 你提供的雲端網址如果要跟著每週自動更新，可以再另外接一個「發佈到 GitHub / Streamlit Cloud」流程。
+- 週一流程跑完後，會自動執行 `git add` / `git commit` / `git push`（有變更時才推送）。
+- 若 `git push` 失敗，流程會在日誌顯示錯誤，請確認 Git 權限與網路連線。
 ## ⏰ 週一 09:00 / 09:30 自動流程
 
 目前專案已支援把 HRM 匯出與週報寄送拆成兩個排程：
@@ -250,7 +250,15 @@ python scripts/monday_workflow.py --force --once
 
 執行：`run-0930-email.bat`
 
-這一步會直接寄出當天最新 PDF 報告。
+這一步預設不會直接寄信，會保留為「待你確認後手動傳送」。
+
+請在儀表板側邊欄勾選「我已確認內容，現在傳送週報」，再按「傳送」。
+
+若要在命令列強制寄送，可執行：
+
+```bash
+python scripts/run_scheduled_monday.py --phase email --confirm-send
+```
 
 ### 建議的 Windows Task Scheduler 設定
 

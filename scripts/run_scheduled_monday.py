@@ -76,7 +76,10 @@ def run_prepare_phase() -> None:
     log("Prepare phase finished.")
 
 
-def run_email_phase() -> None:
+def run_email_phase(confirm_send: bool) -> None:
+    if not confirm_send:
+        log("Email phase skipped: waiting for manual confirmation and send.")
+        return
     run_command(["send_report_email.py"])
     log("Email phase finished.")
 
@@ -84,12 +87,17 @@ def run_email_phase() -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the scheduled Monday HR automation workflow.")
     parser.add_argument("--phase", choices=["prepare", "email", "all"], default="all")
+    parser.add_argument(
+        "--confirm-send",
+        action="store_true",
+        help="Confirm and execute email send in email phase.",
+    )
     args = parser.parse_args()
 
     if args.phase in ("prepare", "all"):
         run_prepare_phase()
     if args.phase in ("email", "all"):
-        run_email_phase()
+        run_email_phase(confirm_send=args.confirm_send)
     return 0
 
 

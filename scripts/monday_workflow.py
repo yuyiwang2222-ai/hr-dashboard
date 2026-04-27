@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -83,6 +84,70 @@ def run_python_script(relative_path: str) -> None:
         raise WorkflowError(f"{relative_path} exited with code {result.returncode}.")
 
 
+def auto_commit_and_push() -> None:
+    if shutil.which("git") is None:
+        raise WorkflowError("Git is not available on this machine.")
+
+    tracked_paths: list[str] = []
+    for relative_path in ("data", "報告", ".monday-workflow-state.json"):
+        if (PROJECT_DIR / relative_path).exists():
+            tracked_paths.append(relative_path)
+
+    if not tracked_paths:
+        log("No tracked files found for auto push. Skipping git push.")
+        return
+
+    add_command = ["git", "add", *tracked_paths]
+    log(f"Running: {' '.join(add_command)}")
+    add_result = subprocess.run(
+        add_command,
+        cwd=PROJECT_DIR,
+        env=SUBPROCESS_ENV,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if add_result.returncode != 0:
+        raise WorkflowError(f"git add failed: {add_result.stderr.strip()}")
+
+    commit_message = f"chore: monday workflow update {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    commit_command = ["git", "commit", "-m", commit_message]
+    log(f"Running: {' '.join(commit_command)}")
+    commit_result = subprocess.run(
+        commit_command,
+        cwd=PROJECT_DIR,
+        env=SUBPROCESS_ENV,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+    commit_output = f"{commit_result.stdout}\n{commit_result.stderr}".lower()
+    if commit_result.returncode != 0:
+        if "nothing to commit" in commit_output or "no changes added to commit" in commit_output:
+            log("No changes to commit. Skipping git push.")
+            return
+        raise WorkflowError(f"git commit failed: {commit_result.stderr.strip()}")
+
+    push_command = ["git", "push"]
+    log(f"Running: {' '.join(push_command)}")
+    push_result = subprocess.run(
+        push_command,
+        cwd=PROJECT_DIR,
+        env=SUBPROCESS_ENV,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if push_result.returncode != 0:
+        raise WorkflowError(f"git push failed: {push_result.stderr.strip()}")
+
+    log("Git push completed. Remote deployment should update automatically.")
+
+
 def is_port_open(host: str, port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as connection:
         connection.settimeout(1)
@@ -157,9 +222,13 @@ class MondayWorkflow:
 
         run_python_script("sync_data.py")
         run_python_script("scripts/weekly_job.py")
+        self.write_state(reason=reason, changed_files=changed_files)
+        try:
+            auto_commit_and_push()
+        except WorkflowError as exc:
+            log(f"Auto git push failed: {exc}")
         self.streamlit.stop()
         self.streamlit.start()
-        self.write_state(reason=reason, changed_files=changed_files)
         self.open_browser()
         log("Workflow finished.")
 

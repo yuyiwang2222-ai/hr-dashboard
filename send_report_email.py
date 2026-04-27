@@ -2,34 +2,55 @@
 透過 Outlook 寄送人力分析報告
 """
 
-import win32com.client as win32
 import os
 from datetime import date
 
-def send_report_email():
-    # 設定
+DEFAULT_RECIPIENTS = [
+    "matt@df-recycle.com.tw",
+    "chjuan@df-recycle.com.tw",
+    "chiehyi@df-recycle.com.tw",
+]
+
+
+def get_email_preview():
+    """提供寄信前預覽資料（收件人、主旨、附件狀態）"""
     today = date.today()
     report_filename = f"人力分析報告_{today.strftime('%Y%m%d')}.pdf"
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    report_dir = os.path.join(script_dir, "報告")
-    report_path = os.path.join(report_dir, report_filename)
+    report_path = os.path.join(script_dir, "報告", report_filename)
+
+    return {
+        "recipients": DEFAULT_RECIPIENTS.copy(),
+        "subject": f"大豐環保人力分析報告 - {today.strftime('%Y年%m月%d日')}",
+        "report_filename": report_filename,
+        "report_path": report_path,
+        "report_exists": os.path.exists(report_path),
+    }
+
+def send_report_email():
+    preview = get_email_preview()
+    today = date.today()
+    report_filename = preview["report_filename"]
+    report_path = preview["report_path"]
     
     # 檢查報告是否存在
-    if not os.path.exists(report_path):
+    if not preview["report_exists"]:
         print(f"❌ 找不到報告：{report_path}")
         print("請先執行 python generate_pdf_report.py 產生報告")
         return False
     
     try:
+        import win32com.client as win32
+
         # 連接 Outlook
         outlook = win32.Dispatch('outlook.application')
         mail = outlook.CreateItem(0)  # 0 = MailItem
         
         # 設定收件人
-        mail.To = "matt@df-recycle.com.tw;chjuan@df-recycle.com.tw;chiehyi@df-recycle.com.tw"
+        mail.To = ";".join(preview["recipients"])
         
         # 設定主旨
-        mail.Subject = f"大豐環保人力分析報告 - {today.strftime('%Y年%m月%d日')}"
+        mail.Subject = preview["subject"]
         
         # 設定內容
         mail.Body = f"""您好，
@@ -57,7 +78,7 @@ def send_report_email():
         # 發送
         mail.Send()
         
-        print(f"✅ 郵件已成功寄送至 matt, chjuan, chiehyi@df-recycle.com.tw")
+        print(f"✅ 郵件已成功寄送至 {', '.join(preview['recipients'])}")
         print(f"📎 附件：{report_filename}")
         return True
         
