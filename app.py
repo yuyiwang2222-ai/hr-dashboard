@@ -247,6 +247,10 @@ with st.sidebar:
 
     st.markdown("---")
     st.subheader("📧 週報寄送")
+    is_local_windows = os.name == "nt"
+    if not is_local_windows:
+        st.info("目前為雲端環境，僅可查看預覽；寄送與附件檢查請在本機儀表板（http://127.0.0.1:8501）操作。")
+
     report_exists = False
     try:
         from send_report_email import get_email_preview, send_report_email
@@ -264,7 +268,7 @@ with st.sidebar:
         st.error(f"❌ 無法載入寄信預覽：{exc}")
 
     email_confirmed = st.checkbox("我已確認內容，現在傳送週報", key="email_send_confirm")
-    send_disabled = (not email_confirmed) or (not report_exists)
+    send_disabled = (not email_confirmed) or (not report_exists) or (not is_local_windows)
     if st.button("傳送", use_container_width=True, disabled=send_disabled):
         with st.spinner("正在傳送週報..."):
             try:
